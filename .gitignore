@@ -1,0 +1,10 @@
+.env
+*.env
+node_modules/
+tmp/
+vouchers/
+*.log
+*.pdf
+*.bak
+*.swp
+sms-confirm.log

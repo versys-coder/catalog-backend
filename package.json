@@ -1,0 +1,17 @@
+{
+  "name": "booking-api",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@clickhouse/client": "^1.12.1",
+    "axios": "^1.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.0",
+    "luxon": "^3.7.2",
+    "node-fetch": "^3.3.2",
+    "papaparse": "^5.5.3",
+    "winston": "^3.17.0"
+  }
+}
