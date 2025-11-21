@@ -14,9 +14,15 @@ const {
 
 const TOTAL_PLACES = TOTAL_LANES * LANE_CAPACITY;
 const EKB_TZ_OFFSET = Number(process.env.EKB_TZ_OFFSET || 5);
-const SCHEDULE_MODE = process.env.SCHEDULE_MODE || 'test';
-const TEST_RANGE_START = process.env.TEST_RANGE_START || '2025-05-01';
-const TEST_RANGE_END = process.env.TEST_RANGE_END || '2025-05-10';
+
+// Явно по умолчанию production — если переменная окружения SCHEDULE_MODE не задана, будет 'prod'.
+// (Вы сказали, что 'test' больше не будет — этот код берёт 'prod' по умолчанию.)
+const SCHEDULE_MODE = process.env.SCHEDULE_MODE || 'prod';
+
+// TEST_RANGE_START/END используются ТОЛЬКО если SCHEDULE_MODE === 'test'.
+// Оставляем поддержку (на случай ручного тестирования), но не активируем их по умолчанию.
+const TEST_RANGE_START = process.env.TEST_RANGE_START || null;
+const TEST_RANGE_END = process.env.TEST_RANGE_END || null;
 
 function getEkaterinburgDateHour() {
   const nowUtc = new Date();
