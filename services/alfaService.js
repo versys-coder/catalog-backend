@@ -1,14 +1,12 @@
 // services/alfaService.js
-// Поддержка токена ИЛИ userName/password (авто-выбор).
-// Полностью соответствует протоколу Альфы.
+// Клиент для Альфа e-Commerce.
+// ВАЖНО: используется ТОЛЬКО токен авторизации (ALFA_TOKEN).
+// Все запросы: POST x-www-form-urlencoded UTF-8 на ALFA_BASE_URL/rest/*.
 
 const axios = require('axios');
 
 const ALFA_BASE_URL = (process.env.ALFA_BASE_URL || '').replace(/\/+$/, '');
 const ALFA_TOKEN = process.env.ALFA_TOKEN || '';
-const ALFA_USER = process.env.ALFA_USER || process.env.ALFA_USERNAME || '';
-const ALFA_PASS = process.env.ALFA_PASS || process.env.ALFA_PASSWORD || '';
-
 const ALFA_SKIP_SSL_VERIFY =
   process.env.ALFA_SKIP_SSL_VERIFY === '1' ||
   String(process.env.ALFA_SKIP_SSL_VERIFY || '').toLowerCase() === 'true';
@@ -16,8 +14,13 @@ const ALFA_SKIP_SSL_VERIFY =
 if (!ALFA_BASE_URL) {
   console.error('[alfaService] ALFA_BASE_URL is not set');
 }
-if (!ALFA_TOKEN && (!ALFA_USER || !ALFA_PASS)) {
-  console.error('[alfaService] Neither ALFA_TOKEN nor ALFA_USER+ALFA_PASS is set');
+
+if (!ALFA_TOKEN) {
+  console.error('[alfaService] ALFA_TOKEN is not set');
+}
+
+if (ALFA_SKIP_SSL_VERIFY) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
 const client = axios.create({
@@ -28,58 +31,45 @@ const client = axios.create({
   timeout: 20000
 });
 
-// Sandbox: отключение SSL
-if (ALFA_SKIP_SSL_VERIFY) {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-}
-
 /**
- * alfaPost(path, params)
- * Автоматически добавляет токен ИЛИ user/pass.
+ * Общий POST в Альфу.
+ * path: "register.do" / "rest/getOrderStatusExtended.do" и т.п.
+ * params: объект с полями запроса.
  */
 async function alfaPost(path, params = {}) {
-  const p = String(path || '').replace(/^\/+/, '');
-  const fullPath = p.startsWith('rest/') ? `/${p}` : `/rest/${p}`;
+  const clean = String(path || '').replace(/^\/+/, '');
+  const finalPath = clean.startsWith('rest/') ? `/${clean}` : `/rest/${clean}`;
 
   const body = new URLSearchParams();
+  body.append('token', ALFA_TOKEN);
 
-  // Авторизация: токен ИЛИ user+pass
-  if (ALFA_TOKEN) {
-    body.append('token', ALFA_TOKEN);
-  } else {
-    body.append('userName', ALFA_USER);
-    body.append('password', ALFA_PASS);
-  }
-
-  // Остальные параметры
-  for (const [k, v] of Object.entries(params || {})) {
+  for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null) continue;
     body.append(k, String(v));
   }
 
   try {
-    const resp = await client.post(fullPath, body.toString());
-    return { ok: true, data: resp.data, status: resp.status };
+    const resp = await client.post(finalPath, body.toString());
+    return { ok: true, status: resp.status, data: resp.data };
   } catch (err) {
-    const data = err.response?.data ?? null;
-    const status = err.response?.status ?? null;
+    const data = err.response?.data || null;
+    const status = err.response?.status || null;
     console.error('[alfaService] ERROR:', data || err.message);
-    return { ok: false, error: err.message, data, status };
+    return { ok: false, status, error: err.message, data };
   }
 }
 
-// Удобные врапперы
-
+// Методы Альфы
 async function alfaRegister(fields) {
-  return alfaPost('/register.do', fields);
+  return alfaPost('register.do', fields);
 }
 
 async function alfaGetStatusExtended(params) {
-  return alfaPost('/getOrderStatusExtended.do', params);
+  return alfaPost('getOrderStatusExtended.do', params);
 }
 
 async function alfaDecline(orderId) {
-  return alfaPost('/decline.do', { orderId });
+  return alfaPost('decline.do', { orderId });
 }
 
 module.exports = {
